@@ -1,5 +1,5 @@
 {
-  "title": "예스터데이 전술지도",
+  "title": "어제의 오늘",
   "background": "/new-sandiego-map.png",
   "tokens": [
     {
@@ -55,5 +55,5 @@
   ],
   "lines": [],
   "labels": [],
-  "notes": "전술 기록 메모"
+  "notes": "지도"
 }
