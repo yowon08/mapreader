@@ -739,6 +739,7 @@ export default function App() {
                         top: token.y,
                         transform: "translate(-50%, -100%)",
                         pointerEvents: "auto",
+                        zIndex: isSelected ? 200 : 20,
                       }}
                       onClick={(e) => {
                         e.stopPropagation();
@@ -852,7 +853,7 @@ export default function App() {
                               color: "#ffffff",
                               boxShadow: "0 18px 40px rgba(0,0,0,0.45)",
                               backdropFilter: "blur(6px)",
-                              zIndex: 30,
+                              zIndex: 210,
                             }}
                           >
                             <div
