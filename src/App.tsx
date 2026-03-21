@@ -199,7 +199,7 @@ export default function App() {
     mapY: 0,
   });
 
-  const [title, setTitle] = useState("전술지도");
+  const [title, setTitle] = useState("어제의 오늘");
   const [background, setBackground] = useState(DEFAULT_BG);
   const [tokens, setTokens] = useState<Token[]>([]);
   const [lines, setLines] = useState<LineItem[]>([]);
@@ -237,7 +237,7 @@ export default function App() {
         const data: ViewerData = await res.json();
         if (cancelled) return;
 
-        setTitle(data.title || "전술지도");
+        setTitle(data.title || "지도");
         setBackground(data.background || DEFAULT_BG);
         setTokens(
           Array.isArray(data.tokens)
