@@ -41,6 +41,8 @@ type ViewerData = {
   notes?: string;
 };
 
+type MapMode = "default" | "resources";
+
 type ArrowHead = {
   tip: Point;
   left: Point;
@@ -205,6 +207,7 @@ export default function App() {
   const [lines, setLines] = useState<LineItem[]>([]);
   const [labels, setLabels] = useState<LabelItem[]>([]);
   const [notes, setNotes] = useState("");
+  const [mapMode, setMapMode] = useState<MapMode>("default");
 
   const [loading, setLoading] = useState(true);
   const [errorText, setErrorText] = useState("");
@@ -220,59 +223,6 @@ export default function App() {
   const totalScale = baseScale * zoom;
   const isMobileLayout =
     typeof window !== "undefined" ? window.innerWidth <= MOBILE_BREAKPOINT : false;
-
-  useEffect(() => {
-    let cancelled = false;
-
-    async function loadJson() {
-      try {
-        setLoading(true);
-        setErrorText("");
-
-        const res = await fetch("/map-data.json", { cache: "no-store" });
-        if (!res.ok) {
-          throw new Error("public/map-data.json 파일을 불러오지 못했습니다.");
-        }
-
-        const data: ViewerData = await res.json();
-        if (cancelled) return;
-
-        setTitle(data.title || "전술지도");
-        setBackground(data.background || DEFAULT_BG);
-        setTokens(
-          Array.isArray(data.tokens)
-            ? data.tokens.map((token) => ({
-                ...token,
-                sizeScale: clampMarkerScale(token.sizeScale ?? 1),
-                customImage: token.customImage ?? null,
-                note: token.note ?? "",
-              }))
-            : []
-        );
-        setLines(
-          Array.isArray(data.lines)
-            ? data.lines.map((line) => ({
-                ...line,
-                sizeScale: clampLineScale(line.sizeScale ?? 1),
-              }))
-            : []
-        );
-        setLabels(Array.isArray(data.labels) ? data.labels : []);
-        setNotes(data.notes || "");
-      } catch (err: any) {
-        if (!cancelled) {
-          setErrorText(err?.message || "지도 데이터를 불러오는 중 오류가 발생했습니다.");
-        }
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    }
-
-    loadJson();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
 
   const selectedToken = useMemo(
     () => tokens.find((token) => token.id === selectedTokenId) ?? null,
@@ -334,6 +284,66 @@ export default function App() {
     },
     [baseScale]
   );
+
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadJson() {
+      const targetPath = mapMode === "resources" ? "/resources.json" : "/map-data.json";
+      const targetName = mapMode === "resources" ? "public/resources.json" : "public/map-data.json";
+
+      try {
+        setLoading(true);
+        setErrorText("");
+        setSelectedTokenId(null);
+
+        const res = await fetch(targetPath, { cache: "no-store" });
+        if (!res.ok) {
+          throw new Error(`${targetName} 파일을 불러오지 못했습니다.`);
+        }
+
+        const data: ViewerData = await res.json();
+        if (cancelled) return;
+
+        setTitle(data.title || (mapMode === "resources" ? "자원 지도" : "전술지도"));
+        setBackground(data.background || DEFAULT_BG);
+        setTokens(
+          Array.isArray(data.tokens)
+            ? data.tokens.map((token) => ({
+                ...token,
+                sizeScale: clampMarkerScale(token.sizeScale ?? 1),
+                customImage: token.customImage ?? null,
+                note: token.note ?? "",
+              }))
+            : []
+        );
+        setLines(
+          Array.isArray(data.lines)
+            ? data.lines.map((line) => ({
+                ...line,
+                sizeScale: clampLineScale(line.sizeScale ?? 1),
+              }))
+            : []
+        );
+        setLabels(Array.isArray(data.labels) ? data.labels : []);
+        setNotes(data.notes || "");
+
+        requestAnimationFrame(() => fitWholeMap(1));
+      } catch (err: any) {
+        if (!cancelled) {
+          setErrorText(err?.message || "지도 데이터를 불러오는 중 오류가 발생했습니다.");
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+
+    loadJson();
+    return () => {
+      cancelled = true;
+    };
+  }, [fitWholeMap, mapMode]);
 
   useEffect(() => {
     const run = () => updateBaseScale();
@@ -546,13 +556,13 @@ export default function App() {
               position: "absolute",
               top: 14,
               left: 14,
-              right: 14,
               zIndex: 30,
               display: "flex",
-              justifyContent: "space-between",
+              flexDirection: "column",
               alignItems: "flex-start",
               gap: 12,
               pointerEvents: "none",
+              maxWidth: isMobileLayout ? "calc(100vw - 28px)" : "420px",
             }}
           >
             <div
@@ -562,7 +572,7 @@ export default function App() {
                 borderRadius: 18,
                 padding: "12px 14px",
                 backdropFilter: "blur(8px)",
-                maxWidth: isMobileLayout ? "72%" : "420px",
+                maxWidth: "100%",
                 pointerEvents: "auto",
               }}
             >
@@ -592,6 +602,22 @@ export default function App() {
                 pointerEvents: "auto",
               }}
             >
+              <button
+                onClick={() => setMapMode((prev) => (prev === "default" ? "resources" : "default"))}
+                style={{
+                  ...buttonStyle(),
+                  width: "auto",
+                  minWidth: 92,
+                  padding: "0 14px",
+                  fontSize: 13,
+                  fontWeight: 800,
+                  background:
+                    mapMode === "resources" ? "rgba(34,197,94,0.9)" : "rgba(15,23,42,0.88)",
+                }}
+                title={mapMode === "resources" ? "기본 지도로 돌아가기" : "자원 지도 보기"}
+              >
+                {mapMode === "resources" ? "기본 지도" : "자원 지도"}
+              </button>
               <button onClick={() => fitWholeMap(1)} style={buttonStyle()} title="전체 보기">
                 ⛶
               </button>
